@@ -1,0 +1,34 @@
+{{- $hpaEnabled := false -}}
+{{- if hasKey .Values "hpa" -}}
+  {{- $hpaMap := index .Values "hpa" -}}
+  {{- if and $hpaMap (hasKey $hpaMap "enabled") -}}
+    {{- $hpaEnabled = (index $hpaMap "enabled") -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if $hpaEnabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "hello-app.fullname" . }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "hello-app.fullname" . }}
+  minReplicas: {{ default 1 .Values.hpa.minReplicas }}
+  maxReplicas: {{ default 3 .Values.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ default 80 .Values.hpa.cpuUtilization }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ default 80 .Values.hpa.memoryUtilization }}
+{{- end }}
